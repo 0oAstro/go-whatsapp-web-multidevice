@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/config"
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/domains/app"
@@ -53,6 +56,17 @@ func downloadFileFromURL(url, path string) error {
 
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+func normalizeFileName(name string) string {
+	decoded, err := url.QueryUnescape(filepath.Base(name))
+	if err != nil {
+		decoded = filepath.Base(name)
+	}
+	cleaned := filepath.Clean(decoded)
+	cleaned = strings.ReplaceAll(cleaned, " ", "_")
+	fmt.Printf("Cleaned filename: %s\n", cleaned)
+	return cleaned
 }
 
 func (service serviceSend) SendText(ctx context.Context, request domainSend.MessageRequest) (response domainSend.GenericResponse, err error) {
@@ -247,77 +261,82 @@ func (service serviceSend) SendFile(ctx context.Context, request domainSend.File
 		return response, err
 	}
 
+	var (
+		filePath     string
+		deletedItems []string
+		filename     string
+	)
+
+	generateUUID := fiberUtils.UUIDv4()
+
+	// Handle file from URL or uploaded file
 	if request.FileUrl != "" {
-		fileBytes, err := http.Get(request.FileUrl)
+		filename = normalizeFileName(request.FileUrl)
+		filePath = fmt.Sprintf("%s/%s", config.PathSendItems, filename)
+		err = downloadFileFromURL(request.FileUrl, filePath)
 		if err != nil {
-			return response, err
+			return response, fmt.Errorf("failed to download file: %v", err)
+		} else {
+			fmt.Printf("Downloaded file from URL: %s", request.FileUrl)
 		}
-		defer fileBytes.Body.Close()
-		data, err := io.ReadAll(fileBytes.Body)
-		if err != nil {
-			return response, err
-		}
-		fileMimeType := http.DetectContentType(data)
-		uploadedFile, err := service.uploadMedia(ctx, whatsmeow.MediaDocument, data, dataWaRecipient)
-		if err != nil {
-			fmt.Printf("Failed to upload file: %v", err)
-			return response, err
-		}
-
-		msg := &waE2E.Message{DocumentMessage: &waE2E.DocumentMessage{
-			URL:           proto.String(uploadedFile.URL),
-			Mimetype:      proto.String(fileMimeType),
-			Title:         proto.String(request.File.Filename),
-			FileSHA256:    uploadedFile.FileSHA256,
-			FileLength:    proto.Uint64(uploadedFile.FileLength),
-			MediaKey:      uploadedFile.MediaKey,
-			FileName:      proto.String(request.File.Filename),
-			FileEncSHA256: uploadedFile.FileEncSHA256,
-			DirectPath:    proto.String(uploadedFile.DirectPath),
-			Caption:       proto.String(request.Caption),
-		}}
-		ts, err := service.WaCli.SendMessage(ctx, dataWaRecipient, msg)
-		if err != nil {
-			return response, err
-		}
-
-		response.MessageID = ts.ID
-		response.Status = fmt.Sprintf("Document sent to %s (server timestamp: %s)", request.Phone, ts.Timestamp.String())
-		return response, nil
+		deletedItems = append(deletedItems, filePath)
 	} else if request.File != nil {
-		fileBytes := helpers.MultipartFormFileHeaderToBytes(request.File)
-		fileMimeType := http.DetectContentType(fileBytes)
-
-		// Send to WA server
-		uploadedFile, err := service.uploadMedia(ctx, whatsmeow.MediaDocument, fileBytes, dataWaRecipient)
-		if err != nil {
-			fmt.Printf("Failed to upload file: %v", err)
-			return response, err
+		if request.File.Filename == "" {
+			return response, pkgError.ValidationError("file: filename cannot be empty")
 		}
-
-		msg := &waE2E.Message{DocumentMessage: &waE2E.DocumentMessage{
-			URL:           proto.String(uploadedFile.URL),
-			Mimetype:      proto.String(fileMimeType),
-			Title:         proto.String(request.File.Filename),
-			FileSHA256:    uploadedFile.FileSHA256,
-			FileLength:    proto.Uint64(uploadedFile.FileLength),
-			MediaKey:      uploadedFile.MediaKey,
-			FileName:      proto.String(request.File.Filename),
-			FileEncSHA256: uploadedFile.FileEncSHA256,
-			DirectPath:    proto.String(uploadedFile.DirectPath),
-			Caption:       proto.String(request.Caption),
-		}}
-		ts, err := service.WaCli.SendMessage(ctx, dataWaRecipient, msg)
+		filename = normalizeFileName(request.File.Filename)
+		filePath = fmt.Sprintf("%s/%s-%s", config.PathSendItems, generateUUID, filename)
+		err = fasthttp.SaveMultipartFile(request.File, filePath)
 		if err != nil {
-			return response, err
+			return response, pkgError.InternalServerError(fmt.Sprintf("failed to store file in server %v", err))
 		}
-
-		response.MessageID = ts.ID
-		response.Status = fmt.Sprintf("Document sent to %s (server timestamp: %s)", request.Phone, ts.Timestamp.String())
-		return response, nil
+		deletedItems = append(deletedItems, filePath)
 	} else {
 		return response, pkgError.ValidationError("either FileUrl or File must be provided")
 	}
+
+	// Read file data
+	dataWaFile, err := os.ReadFile(filePath)
+	if err != nil {
+		return response, pkgError.InternalServerError(fmt.Sprintf("failed to read file %v", err))
+	}
+
+	// Upload to WhatsApp server
+	fileMimeType := http.DetectContentType(dataWaFile)
+	uploadedFile, err := service.uploadMedia(ctx, whatsmeow.MediaDocument, dataWaFile, dataWaRecipient)
+	if err != nil {
+		return response, pkgError.InternalServerError(fmt.Sprintf("failed to upload file: %v", err))
+	}
+
+	// Prepare and send message
+	msg := &waE2E.Message{DocumentMessage: &waE2E.DocumentMessage{
+		URL:           proto.String(uploadedFile.URL),
+		Mimetype:      proto.String(fileMimeType),
+		Title:         proto.String(filename),
+		FileSHA256:    uploadedFile.FileSHA256,
+		FileLength:    proto.Uint64(uploadedFile.FileLength),
+		MediaKey:      uploadedFile.MediaKey,
+		FileName:      proto.String(filename),
+		FileEncSHA256: uploadedFile.FileEncSHA256,
+		DirectPath:    proto.String(uploadedFile.DirectPath),
+		Caption:       proto.String(request.Caption),
+	}}
+
+	ts, err := service.WaCli.SendMessage(ctx, dataWaRecipient, msg)
+	if err != nil {
+		return response, err
+	}
+
+	// Cleanup files
+	go func() {
+		if err := utils.RemoveFile(1, deletedItems...); err != nil {
+			logrus.WithError(err).Error("Failed to cleanup files")
+		}
+	}()
+
+	response.MessageID = ts.ID
+	response.Status = fmt.Sprintf("Document sent to %s (server timestamp: %s)", request.Phone, ts.Timestamp.String())
+	return response, nil
 }
 
 func (service serviceSend) SendVideo(ctx context.Context, request domainSend.VideoRequest) (response domainSend.GenericResponse, err error) {
@@ -607,6 +626,7 @@ func (service serviceSend) uploadMedia(ctx context.Context, mediaType whatsmeow.
 		uploaded, err = service.WaCli.UploadNewsletter(ctx, media, mediaType)
 	} else {
 		uploaded, err = service.WaCli.Upload(ctx, media, mediaType)
+
 	}
 	return uploaded, err
 }
