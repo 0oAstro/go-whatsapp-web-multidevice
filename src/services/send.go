@@ -259,11 +259,11 @@ func (service serviceSend) SendImage(ctx context.Context, request domainSend.Ima
 	}
 
 	// Cleanup files
-	go func() {
-		if err := utils.RemoveFile(0, deletedItems...); err != nil {
-			logrus.WithError(err).Error("Failed to cleanup files")
-		}
-	}()
+	// go func() {
+	// 	if err := utils.RemoveFile(0, deletedItems...); err != nil {
+	// 		logrus.WithError(err).Error("Failed to cleanup files")
+	// 	}
+	// }()
 
 	response.MessageID = ts.ID
 	response.Status = fmt.Sprintf("Image sent to %s (server timestamp: %s)", request.Phone, ts.Timestamp)

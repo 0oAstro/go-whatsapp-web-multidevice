@@ -154,13 +154,14 @@ func handler(rawEvt interface{}) {
 		message := ExtractMessageText(evt)
 		utils.RecordMessage(evt.Info.ID, evt.Info.Sender.String(), message)
 
-		if img := evt.Message.GetImageMessage(); img != nil {
-			if path, err := ExtractMedia(config.PathStorages, img); err != nil {
-				log.Errorf("Failed to download image: %v", err)
-			} else {
-				log.Infof("Image downloaded to %s", path)
-			}
-		}
+		// Uncomment to enable media storage
+		// if img := evt.Message.GetImageMessage(); img != nil {
+		// 	if path, err := ExtractMedia(config.PathStorages, img); err != nil {
+		// 		log.Errorf("Failed to download image: %v", err)
+		// 	} else {
+		// 		log.Infof("Image downloaded to %s", path)
+		// 	}
+		// }
 
 		if config.WhatsappAutoReplyMessage != "" &&
 			!isGroupJid(evt.Info.Chat.String()) &&

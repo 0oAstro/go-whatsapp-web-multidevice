@@ -6,7 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"mime"
-	"os"
+
+	// "os"
 	"regexp"
 	"strings"
 	"time"
@@ -64,10 +65,11 @@ func ExtractMedia(storageLocation string, mediaFile whatsmeow.DownloadableMessag
 	}
 
 	extractedMedia.MediaPath = fmt.Sprintf("%s/%d-%s%s", storageLocation, time.Now().Unix(), uuid.NewString(), extension)
-	err = os.WriteFile(extractedMedia.MediaPath, data, 0600)
-	if err != nil {
-		return extractedMedia, err
-	}
+	// Uncomment to enable media storage
+	// err = os.WriteFile(extractedMedia.MediaPath, data, 0600)
+	// if err != nil {
+	// 	return extractedMedia, err
+	// }
 	return extractedMedia, nil
 }
 
