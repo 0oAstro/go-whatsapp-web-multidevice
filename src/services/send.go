@@ -48,7 +48,8 @@ func (service serviceSend) wrapSendMessage(ctx context.Context, recipient types.
 		return whatsmeow.SendResponse{}, err
 	}
 
-	utils.RecordMessage(ts.ID, service.WaCli.Store.ID.String(), content)
+	// Uncomment to enable message storage
+	// utils.RecordMessage(ts.ID, service.WaCli.Store.ID.String(), content)
 
 	return ts, nil
 }

@@ -2,11 +2,12 @@ package whatsapp
 
 import (
 	"context"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"os"
 	"strings"
-	"sync/atomic"
+
+	// "sync/atomic"
 	"time"
 
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/config"
@@ -197,23 +198,22 @@ func handler(rawEvt interface{}) {
 			log.Infof("%s is now online", evt.From)
 		}
 	case *events.HistorySync:
-		id := atomic.AddInt32(&historySyncID, 1)
-		fileName := fmt.Sprintf("%s/history-%d-%s-%d-%s.json", config.PathStorages, startupTime, cli.Store.ID.String(), id, evt.Data.SyncType.String())
-		file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0600)
-		if err != nil {
-			log.Errorf("Failed to open file to write history sync: %v", err)
-			return
-		}
-		enc := json.NewEncoder(file)
-		enc.SetIndent("", "  ")
-		err = enc.Encode(evt.Data)
-		if err != nil {
-			log.Errorf("Failed to write history sync: %v", err)
-			return
-		}
-		log.Infof("Wrote history sync to %s", fileName)
-		_ = file.Close()
-	case *events.AppState:
-		log.Debugf("App state event: %+v / %+v", evt.Index, evt.SyncActionValue)
+		// Uncomment to enable message storage
+		// id := atomic.AddInt32(&historySyncID, 1)
+		// fileName := fmt.Sprintf("%s/history-%d-%s-%d-%s.json", config.PathStorages, startupTime, cli.Store.ID.String(), id, evt.Data.SyncType.String())
+		// file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0600)
+		// if err != nil {
+		// 	log.Errorf("Failed to open file to write history sync: %v", err)
+		// 	return
+		// }
+		// enc := json.NewEncoder(file)
+		// enc.SetIndent("", "  ")
+		// err = enc.Encode(evt.Data)
+		// if err != nil {
+		// 	log.Errorf("Failed to write history sync: %v", err)
+		// 	return
+		// }
+		// log.Infof("Wrote history sync to %s", fileName)
+		// _ = file.Close()
 	}
 }

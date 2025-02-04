@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/aldinokemal/go-whatsapp-web-multidevice/config"
-	"github.com/gofiber/fiber/v2/log"
+	// "github.com/gofiber/fiber/v2/log"
 )
 
 type RecordedMessage struct {
@@ -39,65 +39,66 @@ func FindRecordFromStorage(messageID string) (RecordedMessage, error) {
 }
 
 func RecordMessage(messageID string, senderJID string, messageContent string) {
-	message := RecordedMessage{
-		MessageID:      messageID,
-		JID:            senderJID,
-		MessageContent: messageContent,
-	}
+	// Uncomment to enable message storage
+	// message := RecordedMessage{
+	// 	MessageID:      messageID,
+	// 	JID:            senderJID,
+	// 	MessageContent: messageContent,
+	// }
 
-	// Read existing messages
-	var messages []RecordedMessage
-	if data, err := os.ReadFile(config.PathChatStorage); err == nil {
-		// Split file by newlines and parse each line
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			if line == "" {
-				continue
-			}
-			parts := strings.Split(line, ",")
+	// // Read existing messages
+	// var messages []RecordedMessage
+	// if data, err := os.ReadFile(config.PathChatStorage); err == nil {
+	// 	// Split file by newlines and parse each line
+	// 	lines := strings.Split(string(data), "\n")
+	// 	for _, line := range lines {
+	// 		if line == "" {
+	// 			continue
+	// 		}
+	// 		parts := strings.Split(line, ",")
 
-			// Ensure safe access to array elements
-			if len(parts) == 3 {
-				msg := RecordedMessage{
-					MessageID:      parts[0],
-					JID:            parts[1],
-					MessageContent: parts[2],
-				}
-				messages = append(messages, msg)
-			} else {
-				log.Warnf("RecordMessage: index out of range, parts length: %d, parts: %v", len(parts), parts)
-			}
-		}
-	}
+	// 		// Ensure safe access to array elements
+	// 		if len(parts) == 3 {
+	// 			msg := RecordedMessage{
+	// 				MessageID:      parts[0],
+	// 				JID:            parts[1],
+	// 				MessageContent: parts[2],
+	// 			}
+	// 			messages = append(messages, msg)
+	// 		} else {
+	// 			log.Warnf("RecordMessage: index out of range, parts length: %d, parts: %v", len(parts), parts)
+	// 		}
+	// 	}
+	// }
 
-	// Check for duplicates
-	for _, msg := range messages {
-		if msg.MessageID == message.MessageID {
-			return // Skip if duplicate found
-		}
-	}
+	// // Check for duplicates
+	// for _, msg := range messages {
+	// 	if msg.MessageID == message.MessageID {
+	// 		return // Skip if duplicate found
+	// 	}
+	// }
 
-	// Write new message at the top
-	f, err := os.OpenFile(config.PathChatStorage, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		log.Errorf("Failed to open received-chat.txt: %v", err)
-		return
-	}
-	defer f.Close()
+	// // Write new message at the top
+	// f, err := os.OpenFile(config.PathChatStorage, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	// if err != nil {
+	// 	log.Errorf("Failed to open received-chat.txt: %v", err)
+	// 	return
+	// }
+	// defer f.Close()
 
-	// Write new message first
-	csvLine := fmt.Sprintf("%s,%s,%s\n", message.MessageID, message.JID, message.MessageContent)
-	if _, err := f.WriteString(csvLine); err != nil {
-		log.Errorf("Failed to write to received-chat.txt: %v", err)
-		return
-	}
+	// // Write new message first
+	// csvLine := fmt.Sprintf("%s,%s,%s\n", message.MessageID, message.JID, message.MessageContent)
+	// if _, err := f.WriteString(csvLine); err != nil {
+	// 	log.Errorf("Failed to write to received-chat.txt: %v", err)
+	// 	return
+	// }
 
-	// Write existing messages after
-	for _, msg := range messages {
-		csvLine := fmt.Sprintf("%s,%s,%s\n", msg.MessageID, msg.JID, msg.MessageContent)
-		if _, err := f.WriteString(csvLine); err != nil {
-			log.Errorf("Failed to write to received-chat.txt: %v", err)
-			return
-		}
-	}
+	// // Write existing messages after
+	// for _, msg := range messages {
+	// 	csvLine := fmt.Sprintf("%s,%s,%s\n", msg.MessageID, msg.JID, msg.MessageContent)
+	// 	if _, err := f.WriteString(csvLine); err != nil {
+	// 		log.Errorf("Failed to write to received-chat.txt: %v", err)
+	// 		return
+	// 	}
+	// }
 }
