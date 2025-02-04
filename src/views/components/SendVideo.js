@@ -5,7 +5,6 @@ export default {
   components: {
     FormRecipient,
   },
-  // define props
   props: {
     maxVideoSize: {
       type: String,
@@ -21,6 +20,7 @@ export default {
       phone: "",
       loading: false,
       video_url: "",
+      selectedFileName: null,
     };
   },
   computed: {
@@ -38,13 +38,26 @@ export default {
         })
         .modal("show");
     },
+    isShowAttributes() {
+      return this.type !== window.TYPESTATUS;
+    },
+    isValidForm() {
+      if (this.type !== window.TYPESTATUS && !this.phone.trim()) {
+        return false;
+      }
+
+      if (!this.selectedFileName && !this.video_url) {
+        return false;
+      }
+
+      return true;
+    },
     async handleSubmit() {
       try {
-        if (!this.video_url && !$("#file_video")[0].files[0]) {
-          throw new Error(
-            "Please provide either a video URL or upload a video file."
-          );
+        if (!this.isValidForm() || this.loading) {
+          return;
         }
+
         let response = await this.submitApi();
         showSuccessInfo(response);
         $("#modalSendVideo").modal("hide");
@@ -86,7 +99,14 @@ export default {
       this.phone = "";
       this.type = window.TYPEUSER;
       this.video_url = "";
+      this.selectedFileName = null;
       $("#file_video").val("");
+    },
+    handleFileChange(event) {
+      const file = event.target.files[0];
+      if (file) {
+        this.selectedFileName = file.name;
+      }
     },
   },
   template: `
@@ -111,21 +131,21 @@ export default {
         </div>
         <div class="content">
             <form class="ui form">
-                <FormRecipient v-model:type="type" v-model:phone="phone"/>
+                <FormRecipient v-model:type="type" v-model:phone="phone" :show-status="true"/>
                 
                 <div class="field">
                     <label>Caption</label>
                     <textarea v-model="caption" placeholder="Type some caption (optional)..."
                               aria-label="caption"></textarea>
                 </div>
-                <div class="field">
+                <div class="field" v-if="isShowAttributes()">
                     <label>View Once</label>
                     <div class="ui toggle checkbox">
                         <input type="checkbox" aria-label="view once" v-model="view_once">
                         <label>Check for enable one time view</label>
                     </div>
                 </div>
-                <div class="field">
+                <div class="field" v-if="isShowAttributes()">
                     <label>Compress</label>
                     <div class="ui toggle checkbox">
                         <input type="checkbox" aria-label="compress" v-model="compress">
@@ -138,20 +158,27 @@ export default {
                 </div>
                 <div class="field" style="padding-bottom: 30px">
                     <label>Video</label>
-                    <input type="file" style="display: none" accept="video/*" id="file_video">
+                    <input type="file" style="display: none" accept="video/*" id="file_video" @change="handleFileChange">
                     <label for="file_video" class="ui positive medium green left floated button" style="color: white">
                         <i class="ui upload icon"></i>
                         Upload video
                     </label>
+                    <div v-if="selectedFileName" style="margin-top: 60px">
+                        <div class="ui message">
+                            <i class="file icon"></i>
+                            Selected file: {{ selectedFileName }}
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
         <div class="actions">
-            <div class="ui approve positive right labeled icon button" :class="{'loading': this.loading}"
-                 @click="handleSubmit">
+            <button class="ui approve positive right labeled icon button" 
+                 :class="{'loading': loading, 'disabled': !isValidForm() || loading}"
+                 @click.prevent="handleSubmit">
                 Send
                 <i class="send icon"></i>
-            </div>
+            </button>
         </div>
     </div>
     `,

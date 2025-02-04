@@ -18,6 +18,7 @@ export default {
       phone: "",
       loading: false,
       file_url: "",
+      selectedFileName: null,
     };
   },
   computed: {
@@ -35,11 +36,28 @@ export default {
         })
         .modal("show");
     },
+    isValidForm() {
+      if (this.type !== window.TYPESTATUS && !this.phone.trim()) {
+        return false;
+      }
+
+      if (!this.selectedFileName) {
+        return false;
+      }
+
+      return true;
+    },
+
     async handleSubmit() {
       try {
-        if (!this.file_url && !$("#file_input")[0].files[0]) {
+        const fileInput = $("#file_input")[0];
+        if (
+          !this.file_url &&
+          (!fileInput || !fileInput.files || !fileInput.files[0])
+        ) {
           throw new Error("Please provide either a file URL or upload a file.");
         }
+
         let response = await this.submitApi();
         showSuccessInfo(response);
         $("#modalSendFile").modal("hide");
@@ -57,7 +75,12 @@ export default {
         if (this.file_url) {
           payload.append("file_url", this.file_url);
         } else {
-          payload.append("file", $("#file_input")[0].files[0]);
+          const fileInput = $("#file_input")[0];
+          if (fileInput && fileInput.files && fileInput.files[0]) {
+            payload.append("file", fileInput.files[0]);
+          } else {
+            throw new Error("No file selected.");
+          }
         }
 
         let response = await window.http.post(`/send/file`, payload);
@@ -76,8 +99,15 @@ export default {
       this.caption = "";
       this.phone = "";
       this.type = window.TYPEUSER;
-      this.file_url = "";
-      $("#file_input").val("");
+      this.selectedFileName = null;
+
+      $("#file_file").val("");
+    },
+    handleFileChange(event) {
+      const file = event.target.files[0];
+      if (file) {
+        this.selectedFileName = file.name;
+      }
     },
   },
   template: `
@@ -113,20 +143,26 @@ export default {
                 </div>
                 <div class="field" style="padding-bottom: 30px">
                     <label>File</label>
-                    <input type="file" style="display: none" id="file_input" accept="*/*"/>
+                    <input type="file" style="display: none" id="file_file" @change="handleFileChange">
                     <label for="file_input" class="ui positive medium green left floated button" style="color: white">
                         <i class="ui upload icon"></i>
                         Upload file
                     </label>
+                    <div v-if="selectedFileName" style="margin-top: 60px; clear: both;">
+                        <div class="ui message">
+                            <i class="file icon"></i>
+                            Selected file: {{ selectedFileName }}
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
         <div class="actions">
-            <div class="ui approve positive right labeled icon button" :class="{'loading': this.loading}"
-                 @click="handleSubmit">
+            <button class="ui approve positive right labeled icon button" :class="{'loading': this.loading, 'disabled': !isValidForm() || loading}"
+                 @click.prevent="handleSubmit">
                 Send
                 <i class="send icon"></i>
-            </div>
+            </button>
         </div>
     </div>
     `,
