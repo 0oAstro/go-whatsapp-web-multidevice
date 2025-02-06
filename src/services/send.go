@@ -42,7 +42,7 @@ func NewSendService(waCli *whatsmeow.Client, appService app.IAppService) domainS
 }
 
 // wrapSendMessage wraps the message sending process with message ID saving
-func (service serviceSend) wrapSendMessage(ctx context.Context, recipient types.JID, msg *waE2E.Message, content string) (whatsmeow.SendResponse, error) {
+func (service serviceSend) wrapSendMessage(ctx context.Context, recipient types.JID, msg *waE2E.Message, _ string) (whatsmeow.SendResponse, error) {
 	ts, err := service.WaCli.SendMessage(ctx, recipient, msg)
 	if err != nil {
 		return whatsmeow.SendResponse{}, err
