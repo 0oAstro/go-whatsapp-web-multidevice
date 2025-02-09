@@ -3,10 +3,11 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"log"
+
 	domainApp "github.com/aldinokemal/go-whatsapp-web-multidevice/domains/app"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
-	"log"
 )
 
 type client struct{} // Add more data to this type if needed
@@ -88,7 +89,8 @@ func RegisterRoutes(app *fiber.App, service domainApp.IAppService) {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					log.Println("read error:", err)
 				}
-				return // Calls the deferred function, i.e. closes the connection on error
+				log.Println("websocket connection closed")
+				break // gracefully exit the loop on error
 			}
 
 			if messageType == websocket.TextMessage {
