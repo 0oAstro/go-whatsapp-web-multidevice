@@ -47,10 +47,10 @@ func (controller *Send) SendText(c *fiber.Ctx) error {
 
 func (controller *Send) SendImage(c *fiber.Ctx) error {
 	logrus.Debug("Starting SendImage handler")
-	
+
 	var request domainSend.ImageRequest
 	request.Compress = true
-	
+
 	if isJsonRequest(c) {
 		logrus.Debug("Processing JSON request")
 		if err := c.BodyParser(&request); err != nil {
@@ -63,7 +63,7 @@ func (controller *Send) SendImage(c *fiber.Ctx) error {
 			logrus.WithError(err).Error("Failed to parse form body")
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid form body")
 		}
-		
+
 		request.ImageUrl = c.FormValue("image_url")
 		if request.ImageUrl == "" {
 			if file, err := c.FormFile("image"); err == nil {
@@ -75,12 +75,12 @@ func (controller *Send) SendImage(c *fiber.Ctx) error {
 
 	logrus.WithFields(logrus.Fields{
 		"content_type": c.Get("Content-Type"),
-		"phone": request.Phone,
-		"image_url": request.ImageUrl,
-		"has_image": request.Image != nil,
-		"caption": request.Caption,
-		"view_once": request.ViewOnce,
-		"compress": request.Compress,
+		"phone":        request.Phone,
+		"image_url":    request.ImageUrl,
+		"has_image":    request.Image != nil,
+		"caption":      request.Caption,
+		"view_once":    request.ViewOnce,
+		"compress":     request.Compress,
 	}).Debug("Request details")
 
 	if request.ImageUrl == "" && request.Image == nil {
@@ -92,7 +92,7 @@ func (controller *Send) SendImage(c *fiber.Ctx) error {
 	response, err := controller.Service.SendImage(c.UserContext(), request)
 	if err != nil {
 		logrus.WithError(err).Error("Failed to send image")
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to send image: " + err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to send image: "+err.Error())
 	}
 
 	return c.JSON(utils.ResponseData{
@@ -109,9 +109,9 @@ func isJsonRequest(c *fiber.Ctx) bool {
 
 func (controller *Send) SendFile(c *fiber.Ctx) error {
 	logrus.Debug("Starting SendFile handler")
-	
+
 	var request domainSend.FileRequest
-	
+
 	// Handle based on content type
 	if isJsonRequest(c) {
 		logrus.Debug("Processing JSON request")
@@ -125,7 +125,7 @@ func (controller *Send) SendFile(c *fiber.Ctx) error {
 			logrus.WithError(err).Error("Failed to parse form body")
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid form body")
 		}
-		
+
 		// Handle form-specific fields
 		request.FileUrl = c.FormValue("file_url")
 		if request.FileUrl == "" {
@@ -138,9 +138,9 @@ func (controller *Send) SendFile(c *fiber.Ctx) error {
 
 	logrus.WithFields(logrus.Fields{
 		"content_type": c.Get("Content-Type"),
-		"phone": request.Phone,
-		"file_url": request.FileUrl,
-		"has_file": request.File != nil,
+		"phone":        request.Phone,
+		"file_url":     request.FileUrl,
+		"has_file":     request.File != nil,
 	}).Debug("Request details")
 
 	// Validate request
@@ -155,7 +155,7 @@ func (controller *Send) SendFile(c *fiber.Ctx) error {
 	response, err := controller.Service.SendFile(c.UserContext(), request)
 	if err != nil {
 		logrus.WithError(err).Error("Service.SendFile failed")
-		return fiber.NewError(fiber.StatusInternalServerError, "Failed to send file: " + err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to send file: "+err.Error())
 	}
 
 	logrus.WithField("message_id", response.MessageID).Debug("File sent successfully")
@@ -169,7 +169,7 @@ func (controller *Send) SendFile(c *fiber.Ctx) error {
 
 func (controller *Send) SendVideo(c *fiber.Ctx) error {
 	var request domainSend.VideoRequest
-	
+
 	if isJsonRequest(c) {
 		logrus.Debug("Processing JSON request")
 		if err := c.BodyParser(&request); err != nil {
@@ -182,7 +182,7 @@ func (controller *Send) SendVideo(c *fiber.Ctx) error {
 			logrus.WithError(err).Error("Failed to parse form body")
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid form body")
 		}
-		
+
 		request.VideoUrl = c.FormValue("video_url")
 		if request.VideoUrl == "" {
 			video, err := c.FormFile("video")
@@ -194,9 +194,9 @@ func (controller *Send) SendVideo(c *fiber.Ctx) error {
 
 	logrus.WithFields(logrus.Fields{
 		"content_type": c.Get("Content-Type"),
-		"phone": request.Phone,
-		"video_url": request.VideoUrl,
-		"has_video": request.Video != nil,
+		"phone":        request.Phone,
+		"video_url":    request.VideoUrl,
+		"has_video":    request.Video != nil,
 	}).Debug("Request details")
 
 	if request.VideoUrl == "" && request.Video == nil {
@@ -275,7 +275,7 @@ func (controller *Send) SendLocation(c *fiber.Ctx) error {
 
 func (controller *Send) SendAudio(c *fiber.Ctx) error {
 	var request domainSend.AudioRequest
-	
+
 	if isJsonRequest(c) {
 		logrus.Debug("Processing JSON request")
 		if err := c.BodyParser(&request); err != nil {
@@ -288,7 +288,7 @@ func (controller *Send) SendAudio(c *fiber.Ctx) error {
 			logrus.WithError(err).Error("Failed to parse form body")
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid form body")
 		}
-		
+
 		audio, err := c.FormFile("audio")
 		if err == nil {
 			request.Audio = audio
@@ -297,8 +297,8 @@ func (controller *Send) SendAudio(c *fiber.Ctx) error {
 
 	logrus.WithFields(logrus.Fields{
 		"content_type": c.Get("Content-Type"),
-		"phone": request.Phone,
-		"has_audio": request.Audio != nil,
+		"phone":        request.Phone,
+		"has_audio":    request.Audio != nil,
 	}).Debug("Request details")
 
 	if request.Audio == nil {
